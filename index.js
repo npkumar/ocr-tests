@@ -3,10 +3,8 @@ const im = require('imagemagick');
 const Tesseract = require('tesseract.js');
 const fs = require('fs');
 const _ = require('lodash');
-var images = fs.readdirSync('./dataset');
+const images = fs.readdirSync('./dataset');
 const data = {};
-var imageList = ['148.png', '57.jpg'];
-// var imageList =['frame10.jpg', 'frame11.jpg', 'frame12.jpg'];
 
 Tesseract.create({
   workerPath: './node_modules/tesseract.js/dist/worker.js',
@@ -35,50 +33,47 @@ function doErodeAndDilateImage(image) {
 }
 
 function recognizeText(image) {
-  console.log('recognizeText', image)
-  Tesseract.recognize(image, {
-    tessedit_char_whitelist: '0123456789',
-    tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
-  })
-    .then(result => {
-      console.log('Text', result.text);
-      console.log('Confidence', result.confidence)
-      console.log('Done!');
-      return result;
+  return new Promise((resolve, reject) => {
+    return Tesseract.recognize(image, {
+      tessedit_char_whitelist: '0123456789',
+      tessedit_char_blacklist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
     })
-    .catch(err => {
-      console.log(err);
-    });
+      .then(result => resolve(result))
+      .catch(err => reject(err));
+  });
 }
 
 function findText(image) {
   return new Promise((resolve, reject) => {
     return doErodeAndDilateImage(image)
       .then(() => {
-        return Tesseract.recognize(`./dataset_dilated/dilated_${image}`)
+        return recognizeText(`./dataset_dilated/dilated_${image}`)
       })
       .then(result => {
-        // console.log('Text for dilated ' + image, result.text);
-        // console.log('Confidence', result.confidence)
-        data[image].push(result.text);
+        data[image].push({
+          text: result.text,
+          confidence: result.confidence
+        });
         return result;
       })
       .then(() => {
-        return Tesseract.recognize(`./dataset_eroded/eroded_${image}`)
+        return recognizeText(`./dataset_eroded/eroded_${image}`)
       })
       .then(result => {
-        // console.log('Text for eroded ' + image, result.text);
-        // console.log('Confidence', result.confidence)
-        data[image].push(result.text);
+        data[image].push({
+          text: result.text,
+          confidence: result.confidence
+        });
         return result;
       })
       .then(() => {
-        return Tesseract.recognize(`./dataset_manipulated/manipulated_${image}`)
+        return recognizeText(`./dataset_manipulated/manipulated_${image}`)
       })
       .then(result => {
-        // console.log('Text for manipulated ' + image, result.text);
-        // console.log('Confidence', result.confidence)
-        data[image].push(result.text);
+        data[image].push({
+          text: result.text,
+          confidence: result.confidence
+        });
         resolve(result);
       })
       .catch(err => reject(err));  
@@ -86,7 +81,6 @@ function findText(image) {
 }
 
 
-// images = ['31.jpeg', '148.png'];
 Promise.mapSeries(images, image => {
   if (!image.startsWith('.')) {
     data[image] = [];
