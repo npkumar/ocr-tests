@@ -3,6 +3,7 @@ const im = require('imagemagick');
 const Tesseract = require('tesseract.js');
 const fs = require('fs');
 const _ = require('lodash');
+const AsciiTable = require('ascii-table');
 const images = fs.readdirSync('./dataset');
 const data = {};
 const selected = {};
@@ -116,4 +117,11 @@ Promise.mapSeries(images, image => {
   }
 })
 .then(() => doProcessing())
-.then(() => console.log(selected));
+.then(() => {
+  const table = new AsciiTable();
+  table.setHeading('Image', 'Text we can get');
+  _.each(Object.keys(selected), key => {
+    table.addRow(key, selected[key]);
+  });
+  console.log(table.toString())
+});
