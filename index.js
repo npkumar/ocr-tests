@@ -5,7 +5,7 @@ const fs = require('fs');
 const _ = require('lodash');
 const images = fs.readdirSync('./dataset');
 const data = {};
-const CONFIDENCE_THRESHOLD = 25;
+const CONFIDENCE_THRESHOLD = 20;
 
 Tesseract.create({
   workerPath: './node_modules/tesseract.js/dist/worker.js',
