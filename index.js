@@ -5,12 +5,22 @@ const fs = require('fs');
 const _ = require('lodash');
 const images = fs.readdirSync('./dataset');
 const data = {};
+const CONFIDENCE_THRESHOLD = 25;
 
 Tesseract.create({
   workerPath: './node_modules/tesseract.js/dist/worker.js',
   langPath: './eng.traineddata',
   corePath: './node_modules/tesseract.js-core/index.js',
 });
+
+function analyzeResult(result, image) {
+  if (result.confidence >= CONFIDENCE_THRESHOLD) {
+    data[image].push({
+      text: result.text,
+      confidence: result.confidence
+    });
+  }
+}
 
 function doErodeAndDilateImage(image) {
   return new Promise((resolve, reject) => {
@@ -46,34 +56,19 @@ function recognizeText(image) {
 function findText(image) {
   return new Promise((resolve, reject) => {
     return doErodeAndDilateImage(image)
-      .then(() => {
-        return recognizeText(`./dataset_dilated/dilated_${image}`)
-      })
+      .then(() => recognizeText(`./dataset_dilated/dilated_${image}`))
       .then(result => {
-        data[image].push({
-          text: result.text,
-          confidence: result.confidence
-        });
+        analyzeResult(result, image);
         return result;
       })
-      .then(() => {
-        return recognizeText(`./dataset_eroded/eroded_${image}`)
-      })
+      .then(() => recognizeText(`./dataset_eroded/eroded_${image}`))
       .then(result => {
-        data[image].push({
-          text: result.text,
-          confidence: result.confidence
-        });
+        analyzeResult(result, image);
         return result;
       })
-      .then(() => {
-        return recognizeText(`./dataset_manipulated/manipulated_${image}`)
-      })
+      .then(() => recognizeText(`./dataset_manipulated/manipulated_${image}`))
       .then(result => {
-        data[image].push({
-          text: result.text,
-          confidence: result.confidence
-        });
+        analyzeResult(result, image);
         resolve(result);
       })
       .catch(err => reject(err));  
